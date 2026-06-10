@@ -17,21 +17,27 @@ const discreteConfig = {
   database: process.env.DB_NAME || 'github_analyzer',
 }
 
+const poolOptions = {
+  ssl,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  // Keep idle connections alive so managed hosts (Railway, etc.) don't drop
+  // them and cause a "connection lost" error on the next request.
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
+  connectTimeout: 15000,
+}
+
 const pool = CONNECTION_URL
-  ? mysql.createPool({
-      uri: CONNECTION_URL,
-      ssl,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-    })
-  : mysql.createPool({
-      ...discreteConfig,
-      ssl,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-    })
+  ? mysql.createPool({ uri: CONNECTION_URL, ...poolOptions })
+  : mysql.createPool({ ...discreteConfig, ...poolOptions })
+
+// A pool-level error (e.g. an idle connection dropped by the server) must not
+// crash the process; the pool transparently opens a fresh connection.
+pool.on('error', (err) => {
+  console.error('MySQL pool error (recovering):', err.code || err.message)
+})
 
 const CREATE_TABLE = `
   CREATE TABLE IF NOT EXISTS profiles (

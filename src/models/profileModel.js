@@ -8,14 +8,24 @@ const COLUMNS = [
 ]
 
 // JSON columns are returned as objects by some drivers and strings by others;
-// normalize so the API response is always parsed JSON.
+// normalize so the API response is always parsed JSON. Parsing never throws —
+// malformed stored data falls back to a safe default instead of crashing.
+function safeParse(value, fallback) {
+  if (value == null) return fallback
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return fallback
+  }
+}
+
 function hydrate(row) {
   if (!row) return row
-  const parse = (v) => (typeof v === 'string' ? JSON.parse(v) : v)
   return {
     ...row,
-    top_languages: parse(row.top_languages) || [],
-    most_starred_repo: parse(row.most_starred_repo) || null,
+    top_languages: safeParse(row.top_languages, []),
+    most_starred_repo: safeParse(row.most_starred_repo, null),
   }
 }
 
@@ -44,7 +54,8 @@ export async function upsertProfile(profile) {
 export async function getAllProfiles() {
   const [rows] = await pool.query(
     `SELECT id, username, name, avatar_url, public_repos, followers, following,
-            total_stars, top_languages, analyzed_at, updated_at
+            total_stars, total_forks, top_languages, most_starred_repo,
+            analyzed_at, updated_at
      FROM profiles ORDER BY updated_at DESC`,
   )
   return rows.map(hydrate)

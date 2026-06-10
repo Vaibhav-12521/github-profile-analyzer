@@ -30,12 +30,29 @@ look up a single one.
   requests per hour.
 - Schema is created automatically on startup, so there is no manual SQL step.
 
+## Reliability & security
+
+This service is built to stay up under bad input and flaky conditions:
+
+- **Auto-reconnect & retries:** the database connection is retried on startup
+  (handy when the DB boots slightly after the app), and idle connections are
+  kept alive so managed hosts don't drop them mid-request.
+- **Crash-proof process:** uncaught exceptions and unhandled promise rejections
+  are logged instead of killing the server; graceful shutdown on SIGTERM/SIGINT.
+- **Input validation:** GitHub usernames are validated before any API call.
+- **Robust error handling:** clear status codes for invalid JSON (400), oversized
+  bodies (413), unknown GitHub users (404), rate limits (429) and not-found
+  records (404) — unexpected errors return 500 without leaking internals.
+- **Security headers** via `helmet` and a **rate limiter** (100 requests/min/IP)
+  to protect against overload.
+- **Request body size limit** (10 kB) to prevent memory abuse.
+
 ## Tech stack
 
 - Node.js + Express.js
 - MySQL (via `mysql2`)
 - GitHub REST API (third-party)
-- `axios`, `dotenv`, `cors`, `morgan`
+- `axios`, `dotenv`, `cors`, `morgan`, `helmet`, `express-rate-limit`
 
 ## Project structure
 

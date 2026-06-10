@@ -14,6 +14,12 @@ export async function analyze(req, res, next) {
     if (!username)
       return res.status(400).json({ error: 'A "username" is required.' })
 
+    // GitHub usernames: 1-39 chars, alphanumeric or single hyphens, no
+    // leading/trailing hyphen. Validating up front avoids pointless API calls.
+    const valid = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/.test(username)
+    if (!valid)
+      return res.status(400).json({ error: 'Invalid GitHub username format.' })
+
     const insights = await analyzeProfile(username)
     const saved = await upsertProfile(insights)
     res.status(201).json({ message: 'Profile analyzed and stored.', data: saved })

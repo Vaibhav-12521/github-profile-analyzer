@@ -41,14 +41,33 @@ async function start() {
   try {
     await initWithRetry()
     console.log('Database connected and schema ready.')
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`GitHub Profile Analyzer API running on port ${PORT}`)
     })
+
+    // Graceful shutdown so the platform can restart/redeploy cleanly.
+    const shutdown = (signal) => {
+      console.log(`${signal} received, shutting down gracefully...`)
+      server.close(() => process.exit(0))
+      // Force-exit if connections hang.
+      setTimeout(() => process.exit(0), 10000).unref()
+    }
+    process.on('SIGTERM', () => shutdown('SIGTERM'))
+    process.on('SIGINT', () => shutdown('SIGINT'))
   } catch (err) {
     console.error('Failed to start: could not connect to MySQL after retries.')
-    console.error('Check your DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME env vars.')
+    console.error('Check your DATABASE_URL or DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME env vars.')
     process.exit(1)
   }
 }
+
+// Last line of defense: a stray exception or rejected promise should be logged,
+// not crash the whole server. (A request may fail, but the service stays up.)
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception (kept alive):', err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection (kept alive):', reason)
+})
 
 start()
