@@ -1,4 +1,5 @@
 import { analyzeProfile, GitHubError } from '../services/github.js'
+import { isValidUsername } from '../utils/validate.js'
 import {
   upsertProfile,
   getAllProfiles,
@@ -10,8 +11,6 @@ import {
 // How long a stored analysis is considered "fresh" before we re-fetch GitHub.
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
 
-const USERNAME_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/
-
 // POST /api/profiles  { "username": "octocat" }   (optional ?refresh=true)
 // Fetches the profile from GitHub, computes insights and stores them.
 // If a fresh analysis already exists it is returned from the cache instead.
@@ -20,7 +19,7 @@ export async function analyze(req, res, next) {
     const username = (req.body?.username || req.params?.username || '').trim()
     if (!username)
       return res.status(400).json({ error: 'A "username" is required.' })
-    if (!USERNAME_RE.test(username))
+    if (!isValidUsername(username))
       return res.status(400).json({ error: 'Invalid GitHub username format.' })
 
     const refresh = req.query.refresh === 'true' || req.body?.refresh === true

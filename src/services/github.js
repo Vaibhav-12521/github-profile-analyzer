@@ -48,7 +48,8 @@ async function fetchRepos(username) {
   }
 }
 
-function summarizeRepos(repos) {
+// Exported for unit testing.
+export function summarizeRepos(repos) {
   let totalStars = 0
   let totalForks = 0
   const languages = {}

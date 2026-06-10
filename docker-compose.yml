@@ -1,0 +1,41 @@
+# Spin up the full stack (API + MySQL) with a single command:
+#   docker compose up --build
+# The API will be available at http://localhost:4000
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: github_analyzer
+    ports:
+      - "3307:3306" # host 3307 -> container 3306 (avoids clashing with a local MySQL)
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: rootpass
+      DB_NAME: github_analyzer
+      DB_SSL: "false"
+      # GITHUB_TOKEN: your_token_here   # optional, raises the GitHub rate limit
+    ports:
+      - "4000:4000"
+
+volumes:
+  dbdata:

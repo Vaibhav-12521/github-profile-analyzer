@@ -82,6 +82,12 @@ const CREATE_HISTORY_TABLE = `
   )
 `
 
+// Lightweight connectivity check for the health endpoint.
+export async function pingDatabase() {
+  await pool.query('SELECT 1')
+  return true
+}
+
 // Adds a column only if it is missing — lets the schema evolve without
 // breaking an already-deployed database. MySQL has no portable
 // "ADD COLUMN IF NOT EXISTS", so we swallow the duplicate-column error.

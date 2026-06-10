@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit'
 import swaggerUi from 'swagger-ui-express'
 import profileRoutes from './routes/profileRoutes.js'
 import { swaggerSpec } from './docs/swagger.js'
+import { pingDatabase } from './config/db.js'
 
 const app = express()
 
@@ -48,7 +49,15 @@ app.get('/', (req, res) =>
   }),
 )
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }))
+// Readiness check that also verifies the database connection.
+app.get('/health', async (req, res) => {
+  try {
+    await pingDatabase()
+    res.json({ status: 'ok', db: 'connected' })
+  } catch {
+    res.status(503).json({ status: 'degraded', db: 'disconnected' })
+  }
+})
 
 // Interactive API docs
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))

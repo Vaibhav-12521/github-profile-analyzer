@@ -1,5 +1,11 @@
 # GitHub Profile Analyzer API
 
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+[![CI](https://github.com/Vaibhav-12521/github-profile-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/Vaibhav-12521/github-profile-analyzer/actions/workflows/ci.yml)
+
 A backend service that analyzes a GitHub user profile using the GitHub public
 API and stores useful insights in a MySQL database.
 
@@ -71,10 +77,14 @@ src/
   models/profileModel.js    All SQL queries
   controllers/              Request handlers
   routes/                   Route definitions
-  utils/derive.js           Computed insights (account age, avg stars, etc.)
+  utils/                    Pure helpers (insights, username validation)
   docs/swagger.js           OpenAPI spec for /docs
   app.js                    Express app
   index.js                  Entry point
+tests/                      Jest unit + Supertest API tests
+.github/workflows/ci.yml    GitHub Actions CI (runs tests on push)
+Dockerfile                  Production container image
+docker-compose.yml          API + MySQL for one-command local setup
 schema.sql                  Database schema (for reference/export)
 postman_collection.json     Importable Postman collection
 ```
@@ -193,6 +203,32 @@ curl http://localhost:4000/api/profiles/torvalds
 ```
 
 Or import `postman_collection.json` into Postman.
+
+## Run with Docker (no local MySQL needed)
+
+The repository ships with a `Dockerfile` and `docker-compose.yml` that start
+both the API and a MySQL database together:
+
+```bash
+docker compose up --build
+```
+
+The API will be available at `http://localhost:4000` and the schema is created
+automatically. Stop with `docker compose down` (add `-v` to also remove the
+database volume).
+
+## Tests
+
+Unit tests cover the insight calculations and username validation; API tests
+cover routing, validation and error handling. They require no database, so they
+run anywhere (and in CI):
+
+```bash
+npm test
+```
+
+Continuous integration runs the suite automatically on every push via GitHub
+Actions (`.github/workflows/ci.yml`).
 
 ## Database
 
