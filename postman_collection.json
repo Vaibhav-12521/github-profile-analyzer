@@ -1,0 +1,40 @@
+{
+  "info": {
+    "name": "GitHub Profile Analyzer API",
+    "description": "Analyze GitHub user profiles and store insights in MySQL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" }
+  ],
+  "item": [
+    {
+      "name": "Health check",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "Analyze & store a profile",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"octocat\"\n}"
+        },
+        "url": "{{baseUrl}}/api/profiles"
+      }
+    },
+    {
+      "name": "List all stored profiles",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/profiles" }
+    },
+    {
+      "name": "Get a single stored profile",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/profiles/octocat" }
+    },
+    {
+      "name": "Delete a stored profile",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/profiles/octocat" }
+    }
+  ]
+}

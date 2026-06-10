@@ -1,0 +1,182 @@
+# GitHub Profile Analyzer API
+
+A backend service that analyzes a GitHub user profile using the GitHub public
+API and stores useful insights in a MySQL database.
+
+Give it a GitHub username and it fetches the public profile, derives a few extra
+insights from the user's repositories (total stars, top languages, most starred
+repo), and saves everything to MySQL. You can then list all analyzed profiles or
+look up a single one.
+
+## Features
+
+- Analyze any public GitHub profile by username.
+- Stores standard profile data: public repos, gists, followers, following, bio,
+  company, location, account creation date, and more.
+- Derives extra insights from the user's repositories:
+  - Total stars and total forks across their own (non-fork) repos
+  - Top languages used (with counts)
+  - Most starred repository
+- Saves results to MySQL, updating the record if the same user is analyzed again.
+- List all stored profiles or fetch a single profile.
+- Delete a stored profile.
+- Optional GitHub token support to raise the API rate limit from 60 to 5000
+  requests per hour.
+- Schema is created automatically on startup, so there is no manual SQL step.
+
+## Tech stack
+
+- Node.js + Express.js
+- MySQL (via `mysql2`)
+- GitHub REST API (third-party)
+- `axios`, `dotenv`, `cors`, `morgan`
+
+## Project structure
+
+```
+src/
+  config/db.js              MySQL pool + auto schema creation
+  services/github.js        GitHub API calls and insight calculation
+  models/profileModel.js    All SQL queries
+  controllers/              Request handlers
+  routes/                   Route definitions
+  app.js                    Express app
+  index.js                  Entry point
+schema.sql                  Database schema (for reference/export)
+postman_collection.json     Importable Postman collection
+```
+
+## API endpoints
+
+Base URL (local): `http://localhost:4000`
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| POST | `/api/profiles` | Analyze a GitHub user and store the insights. Body: `{ "username": "octocat" }` |
+| GET | `/api/profiles` | List all stored analyzed profiles |
+| GET | `/api/profiles/:username` | Get a single stored profile |
+| DELETE | `/api/profiles/:username` | Delete a stored profile |
+| GET | `/health` | Health check |
+
+### Example: analyze a profile
+
+Request:
+
+```
+POST /api/profiles
+Content-Type: application/json
+
+{ "username": "octocat" }
+```
+
+Response (trimmed):
+
+```json
+{
+  "message": "Profile analyzed and stored.",
+  "data": {
+    "id": 1,
+    "username": "octocat",
+    "name": "The Octocat",
+    "public_repos": 8,
+    "followers": 22906,
+    "following": 9,
+    "total_stars": 20359,
+    "top_languages": [{ "language": "HTML", "count": 1 }],
+    "most_starred_repo": {
+      "name": "Spoon-Knife",
+      "stars": 13840,
+      "url": "https://github.com/octocat/Spoon-Knife"
+    }
+  }
+}
+```
+
+## Setup instructions
+
+### 1. Prerequisites
+
+- Node.js 18 or newer
+- A MySQL database (local install or a free cloud instance)
+
+### 2. Install
+
+```bash
+git clone <your-repo-url>
+cd github-profile-analyzer
+npm install
+```
+
+### 3. Configure environment
+
+Copy `.env.example` to `.env` and fill in your MySQL details:
+
+```bash
+cp .env.example .env
+```
+
+```
+PORT=4000
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=github_analyzer
+DB_SSL=false
+GITHUB_TOKEN=   # optional, raises the GitHub rate limit
+```
+
+### 4. Run
+
+```bash
+npm run dev    # with auto-reload (nodemon)
+# or
+npm start
+```
+
+On startup the app creates the database and `profiles` table automatically.
+You should see:
+
+```
+Database connected and schema ready.
+GitHub Profile Analyzer API running on http://localhost:4000
+```
+
+### 5. Try it
+
+```bash
+curl -X POST http://localhost:4000/api/profiles \
+  -H "Content-Type: application/json" \
+  -d "{\"username\": \"torvalds\"}"
+
+curl http://localhost:4000/api/profiles
+curl http://localhost:4000/api/profiles/torvalds
+```
+
+Or import `postman_collection.json` into Postman.
+
+## Database
+
+The schema is in `schema.sql` and is also created automatically on startup.
+The single `profiles` table stores one row per analyzed user, keyed by a unique
+`username`. JSON columns hold the language breakdown and most-starred repo.
+
+## Deployment
+
+The API is stateless apart from MySQL, so it deploys easily to platforms like
+Railway, Render, or any Node host with a managed MySQL.
+
+General steps:
+
+1. Push the repository to GitHub.
+2. Create a MySQL instance on your host (or a provider like Railway/Aiven).
+3. Create the web service from the repo and set the environment variables from
+   `.env.example` (use the managed database credentials; set `DB_SSL=true` if
+   the provider requires SSL).
+4. The start command is `npm start`. The schema is created on first boot.
+
+## Notes
+
+- Without a `GITHUB_TOKEN`, GitHub allows 60 requests per hour per IP. A token
+  (no scopes required for public data) raises this to 5000 per hour.
+- Repository insights are based on the user's first 100 public repos.
