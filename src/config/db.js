@@ -60,13 +60,41 @@ const CREATE_TABLE = `
     most_starred_repo JSON,
     profile_url VARCHAR(512),
     github_created_at DATETIME,
+    last_active_at DATETIME,
     analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )
 `
 
-// Ensures the database (for the local/discrete case) and the profiles table
-// exist, so the project runs with zero manual SQL.
+// Stores a snapshot on every analysis so we can show how a profile's numbers
+// change over time (followers/stars growth, etc.).
+const CREATE_HISTORY_TABLE = `
+  CREATE TABLE IF NOT EXISTS profile_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    public_repos INT DEFAULT 0,
+    followers INT DEFAULT 0,
+    following INT DEFAULT 0,
+    total_stars INT DEFAULT 0,
+    total_forks INT DEFAULT 0,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_history_username (username)
+  )
+`
+
+// Adds a column only if it is missing — lets the schema evolve without
+// breaking an already-deployed database. MySQL has no portable
+// "ADD COLUMN IF NOT EXISTS", so we swallow the duplicate-column error.
+async function ensureColumn(table, definition) {
+  try {
+    await pool.query(`ALTER TABLE ${table} ADD COLUMN ${definition}`)
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') throw err
+  }
+}
+
+// Ensures the database (for the local/discrete case) and the tables exist,
+// so the project runs with zero manual SQL.
 export async function initDatabase() {
   // When using discrete vars locally, create the database if it's missing.
   // (With a connection URL the database already exists on the provider.)
@@ -83,6 +111,9 @@ export async function initDatabase() {
   }
 
   await pool.query(CREATE_TABLE)
+  await pool.query(CREATE_HISTORY_TABLE)
+  // Migrate older deployments that predate the last_active_at column.
+  await ensureColumn('profiles', 'last_active_at DATETIME')
 }
 
 export default pool

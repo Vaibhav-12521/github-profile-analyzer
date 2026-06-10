@@ -3,14 +3,18 @@ import cors from 'cors'
 import morgan from 'morgan'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
+import swaggerUi from 'swagger-ui-express'
 import profileRoutes from './routes/profileRoutes.js'
+import { swaggerSpec } from './docs/swagger.js'
 
 const app = express()
 
 // Sit behind Railway's proxy so rate-limit/IP detection works correctly.
 app.set('trust proxy', 1)
 
-app.use(helmet())
+// CSP is disabled so the Swagger UI assets render; all other helmet
+// protections remain active.
+app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors())
 // Cap body size so a huge payload can't exhaust memory.
 app.use(express.json({ limit: '10kb' }))
@@ -32,16 +36,22 @@ app.get('/', (req, res) =>
     name: 'GitHub Profile Analyzer API',
     status: 'running',
     endpoints: {
-      'POST /api/profiles': 'Analyze a GitHub user and store insights ({ username })',
-      'GET /api/profiles': 'List all stored analyzed profiles',
+      'POST /api/profiles': 'Analyze a GitHub user and store insights ({ username }, ?refresh=true)',
+      'GET /api/profiles': 'List all stored analyzed profiles (?page&limit&sort&order&search)',
+      'GET /api/profiles/compare': 'Compare two stored profiles (?a=userA&b=userB)',
       'GET /api/profiles/:username': 'Get a single stored profile',
+      'GET /api/profiles/:username/history': 'Trend snapshots over time',
       'DELETE /api/profiles/:username': 'Delete a stored profile',
       'GET /health': 'Health check',
+      'GET /docs': 'Interactive Swagger API documentation',
     },
   }),
 )
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
+
+// Interactive API docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.use('/api/profiles', profileRoutes)
 

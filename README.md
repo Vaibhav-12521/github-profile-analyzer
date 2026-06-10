@@ -21,11 +21,18 @@ look up a single one.
   company, location, account creation date, and more.
 - Derives extra insights from the user's repositories:
   - Total stars and total forks across their own (non-fork) repos
-  - Top languages used (with counts)
+  - Top languages used (with counts) and the primary language
   - Most starred repository
+  - Account age (years), average stars per repo, and last activity date
 - Saves results to MySQL, updating the record if the same user is analyzed again.
-- List all stored profiles or fetch a single profile.
-- Delete a stored profile.
+- **Analysis history / trends:** stores a snapshot on every analysis, with an
+  endpoint to see how followers/stars/repos changed over time.
+- **List with pagination, sorting and search.**
+- **Compare two profiles** side by side.
+- **Smart caching:** a fresh analysis (under 1 hour old) is served from the
+  database instead of re-calling GitHub; force a refresh with `?refresh=true`.
+- Get a single profile, and delete a stored profile.
+- **Interactive Swagger API docs** at `/docs`.
 - Optional GitHub token support to raise the API rate limit from 60 to 5000
   requests per hour.
 - Schema is created automatically on startup, so there is no manual SQL step.
@@ -52,7 +59,8 @@ This service is built to stay up under bad input and flaky conditions:
 - Node.js + Express.js
 - MySQL (via `mysql2`)
 - GitHub REST API (third-party)
-- `axios`, `dotenv`, `cors`, `morgan`, `helmet`, `express-rate-limit`
+- `axios`, `dotenv`, `cors`, `morgan`, `helmet`, `express-rate-limit`,
+  `swagger-ui-express`
 
 ## Project structure
 
@@ -63,6 +71,8 @@ src/
   models/profileModel.js    All SQL queries
   controllers/              Request handlers
   routes/                   Route definitions
+  utils/derive.js           Computed insights (account age, avg stars, etc.)
+  docs/swagger.js           OpenAPI spec for /docs
   app.js                    Express app
   index.js                  Entry point
 schema.sql                  Database schema (for reference/export)
@@ -75,11 +85,17 @@ Base URL (local): `http://localhost:4000`
 
 | Method | Endpoint | Description |
 | ------ | -------- | ----------- |
-| POST | `/api/profiles` | Analyze a GitHub user and store the insights. Body: `{ "username": "octocat" }` |
-| GET | `/api/profiles` | List all stored analyzed profiles |
+| POST | `/api/profiles` | Analyze a GitHub user and store the insights. Body: `{ "username": "octocat" }`. Optional `?refresh=true` to bypass the cache. |
+| GET | `/api/profiles` | List stored profiles. Query: `?page=&limit=&sort=&order=&search=` |
+| GET | `/api/profiles/compare` | Compare two stored profiles. Query: `?a=userA&b=userB` |
 | GET | `/api/profiles/:username` | Get a single stored profile |
+| GET | `/api/profiles/:username/history` | Trend snapshots over time + net change |
 | DELETE | `/api/profiles/:username` | Delete a stored profile |
 | GET | `/health` | Health check |
+| GET | `/docs` | Interactive Swagger API documentation |
+
+Sortable fields for the list endpoint: `updated_at`, `followers`, `total_stars`,
+`public_repos`, `total_forks`, `username`.
 
 ### Example: analyze a profile
 

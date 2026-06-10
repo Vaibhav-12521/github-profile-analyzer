@@ -53,8 +53,13 @@ function summarizeRepos(repos) {
   let totalForks = 0
   const languages = {}
   let mostStarred = null
+  let lastActive = null
 
   for (const repo of repos) {
+    if (repo.pushed_at) {
+      const pushed = new Date(repo.pushed_at)
+      if (!lastActive || pushed > lastActive) lastActive = pushed
+    }
     if (repo.fork) continue // Count the user's own work only.
     totalStars += repo.stargazers_count || 0
     totalForks += repo.forks_count || 0
@@ -74,14 +79,15 @@ function summarizeRepos(repos) {
     .slice(0, 5)
     .map(([language, count]) => ({ language, count }))
 
-  return { totalStars, totalForks, topLanguages, mostStarred }
+  return { totalStars, totalForks, topLanguages, mostStarred, lastActive }
 }
 
 // Fetch a profile and shape it into the insights record we persist.
 export async function analyzeProfile(username) {
   const user = await fetchUser(username)
   const repos = await fetchRepos(username)
-  const { totalStars, totalForks, topLanguages, mostStarred } = summarizeRepos(repos)
+  const { totalStars, totalForks, topLanguages, mostStarred, lastActive } =
+    summarizeRepos(repos)
 
   return {
     username: user.login,
@@ -102,5 +108,6 @@ export async function analyzeProfile(username) {
     most_starred_repo: mostStarred,
     profile_url: user.html_url,
     github_created_at: user.created_at ? new Date(user.created_at) : null,
+    last_active_at: lastActive || (user.updated_at ? new Date(user.updated_at) : null),
   }
 }

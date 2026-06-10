@@ -17,20 +17,64 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"username\": \"octocat\"\n}"
-        },
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"octocat\"\n}" },
         "url": "{{baseUrl}}/api/profiles"
       }
     },
     {
-      "name": "List all stored profiles",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/profiles" }
+      "name": "Analyze with forced refresh",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"octocat\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/api/profiles?refresh=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "profiles"],
+          "query": [{ "key": "refresh", "value": "true" }]
+        }
+      }
+    },
+    {
+      "name": "List profiles (paginated/sorted/search)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/profiles?page=1&limit=20&sort=total_stars&order=desc&search=",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "profiles"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "20" },
+            { "key": "sort", "value": "total_stars" },
+            { "key": "order", "value": "desc" },
+            { "key": "search", "value": "" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Compare two profiles",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/profiles/compare?a=octocat&b=torvalds",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "profiles", "compare"],
+          "query": [
+            { "key": "a", "value": "octocat" },
+            { "key": "b", "value": "torvalds" }
+          ]
+        }
+      }
     },
     {
       "name": "Get a single stored profile",
       "request": { "method": "GET", "url": "{{baseUrl}}/api/profiles/octocat" }
+    },
+    {
+      "name": "Get profile history (trends)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/profiles/octocat/history" }
     },
     {
       "name": "Delete a stored profile",
