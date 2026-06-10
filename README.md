@@ -3,6 +3,12 @@
 A backend service that analyzes a GitHub user profile using the GitHub public
 API and stores useful insights in a MySQL database.
 
+**Live API:** https://github-profile-analyzer-production-e23f.up.railway.app
+
+Quick check: [`/health`](https://github-profile-analyzer-production-e23f.up.railway.app/health)
+· [`/api/profiles`](https://github-profile-analyzer-production-e23f.up.railway.app/api/profiles)
+(deployed on Railway with a managed MySQL database)
+
 Give it a GitHub username and it fetches the public profile, derives a few extra
 insights from the user's repositories (total stars, top languages, most starred
 repo), and saves everything to MySQL. You can then list all analyzed profiles or
